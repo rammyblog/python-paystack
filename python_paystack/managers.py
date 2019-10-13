@@ -163,7 +163,7 @@ class TransactionsManager(RetrieveableMixin, Manager):
             #Connection failed
             raise APIConnectionFailedError(message)
 
-    def verify_transaction(self, transaction_reference : str, endpoint='/verify/'):
+    def verify_transaction(self, reference_code, endpoint='/verify/'):
         '''
         Verifies a payment using the transaction reference.
 
@@ -171,7 +171,7 @@ class TransactionsManager(RetrieveableMixin, Manager):
         endpoint : Paystack API endpoint for verifying transactions
         '''
 
-        endpoint += transaction_reference
+        endpoint += reference_code
         url = self.PAYSTACK_URL + self._endpoint + endpoint
 
         headers, _ = self.build_request_args()
@@ -183,11 +183,9 @@ class TransactionsManager(RetrieveableMixin, Manager):
 
         if status:
             data_dict = content['data']
-            data = json.dumps(content['data'])
-            transaction = Transaction.from_json(data)
-            transaction.email = data_dict['customer']['email']
-            transaction.authorization_code = data_dict['authorization']['authorization_code']
-            return transaction
+            status = data_dict['status']
+
+            return status
         else:
             raise APIConnectionFailedError(message)
 
@@ -208,23 +206,6 @@ class TransactionsManager(RetrieveableMixin, Manager):
         else:
             #Connection failed
             raise APIConnectionFailedError(message)
-    
-    def get_transactions(self,filter=None):
-        '''
-        Returns all transactions with the option of filtering by the transation status
-        Transaction statuses include : 'failed', 'success', 'abandoned'
-        '''
-        url = self.PAYSTACK_URL + self._endpoint
-        if filter:
-            url += '/?status={}'.format(filter)
-        
-        config = PaystackConfig()
-        headers = {
-            'Authorization':'Bearer '+config.SECRET_KEY
-        }        
-        r = requests.get(url,headers=headers)
-
-        return r.json()
 
     def get_total_transactions(self):
         '''
@@ -256,7 +237,6 @@ class TransactionsManager(RetrieveableMixin, Manager):
                 results.append(transaction)
 
         return results
-    
 
 class CustomersManager(CreatableMixin, RetrieveableMixin, UpdateableMixin, Manager):
     '''
@@ -363,6 +343,81 @@ class TransfersManager(CreatableMixin, RetrieveableMixin, UpdateableMixin, Manag
         super().__init__()
         self._endpoint = endpoint
 
+
+    # def initiate_transfer(self, transfer: Transfer):
+    #     '''
+    #     Method to start a transfer to a bank account.
+    #     '''
+
+    #     data = transfer.to_json()
+
+
+    #     headers, _ = self.build_request_args()
+
+    #     url = self.PAYSTACK_URL + self._endpoint
+    #     response = requests.post(url, headers=headers, data=data)
+    #     content = response.content
+    #     content = self.parse_response_content(content)
+
+
+    #     status, message = self.get_content_status(content)
+
+    #     if status:
+    #         data = json.dumps(content['data'])
+    #         transfer = Transfer.from_json(data)
+    #         return transfer
+
+    #     else:
+    #         #Connection failed
+    #         raise APIConnectionFailedError(message)
+
+
+    # def get_transfers(self):
+    #     '''
+    #     Method to get all paystack transfers
+    #     '''
+    #     headers, _ = self.build_request_args()
+
+    #     url = self.PAYSTACK_URL + self._endpoint
+    #     response = requests.get(url, headers=headers)
+    #     content = response.content
+    #     content = self.parse_response_content(content)
+
+    #     status, message = self.get_content_status(content)
+
+    #     if status:
+    #         data = content['data']
+    #         transfers = []
+    #         for item in data:
+    #             item = json.dumps(item)
+    #             transfers.append(Transfer.from_json(item))
+
+    #         return transfers
+
+    #     else:
+    #         #Connection failed
+    #         raise APIConnectionFailedError(message)
+
+    # def get_transfer(self, transfer_id):
+    #     '''
+    #     Method to get paystack transfer with the specified id
+    #     '''
+    #     headers, data = self.build_request_args()
+
+    #     url = self.PAYSTACK_URL + self._endpoint
+    #     url += '/%s' % (transfer_id)
+    #     response = requests.post(url, headers=headers)
+    #     content = response.content
+    #     content = self.parse_response_content(content)
+
+    #     status, message = self.get_content_status(content)
+
+    #     if status:
+    #         data = json.dumps(content['data'])
+    #         return Transfer.from_json(data)
+    #     else:
+    #         #Connection failed
+    #         raise APIConnectionFailedError(message)
 
     def finalize_transfer(self, transfer_id, otp):
         '''
